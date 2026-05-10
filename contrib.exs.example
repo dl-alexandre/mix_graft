@@ -1,0 +1,15 @@
+# Example contrib.exs — copy to `contrib.exs` at your workspace root and edit.
+#
+# `name` matches the hex package atom; `path` is relative to `root`.
+# Eval'd as Elixir, so you can compute paths if needed (same convention
+# as config/*.exs).
+
+%{
+  root: ".",
+  siblings: [
+    %{name: :req_llm, path: "req_llm"},
+    %{name: :jido, path: "jido"},
+    %{name: :jido_ai, path: "jido_ai"},
+    %{name: :jido_chat, path: "jido_chat"}
+  ]
+}
