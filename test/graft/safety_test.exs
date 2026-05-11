@@ -117,6 +117,29 @@ defmodule Graft.SafetyTest do
 
       assert :ok = Safety.within_root?(Path.join(root, "new_repo"), root)
     end
+
+    test "does NOT follow symlinks — lexical check only" do
+      root = Path.join(System.tmp_dir!(), "graft_lexical_#{:erlang.unique_integer([:positive])}")
+      outside = Path.join(System.tmp_dir!(), "graft_lexical_outside_#{:erlang.unique_integer([:positive])}")
+      link = Path.join(root, "escape")
+      File.mkdir_p!(root)
+      File.mkdir_p!(outside)
+      :ok = :file.make_symlink(String.to_charlist(outside), String.to_charlist(link))
+
+      on_exit(fn ->
+        File.rm(link)
+        File.rm_rf!(root)
+        File.rm_rf!(outside)
+      end)
+
+      # Lexical check: the path STRING is inside root, so it passes.
+      # This is intentional — within_root?/2 does not follow symlinks.
+      assert :ok = Safety.within_root?(link, root)
+
+      # The resolved target, however, is outside.
+      assert {:ok, resolved} = Safety.real_path(link)
+      assert {:error, _} = Safety.within_root?(resolved, root)
+    end
   end
 
   describe "resolve_managed_path/2" do

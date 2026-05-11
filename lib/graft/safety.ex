@@ -4,6 +4,39 @@ defmodule Graft.Safety do
 
   All filesystem-side effects go through these checks. No other module
   should re-implement confinement or traversal rules independently.
+
+  ## Primitives and when to use them
+
+  Three functions with **different** semantics live here.  Picking the
+  wrong one is a security bug.
+
+  | Function | Follows symlinks? | Use when … |
+  |----------|-------------------|------------|
+  | `within_root?/2` | **No** — lexical only | You need to know whether a *path string* is inside the root.  Safe for creating new symlinks or deleting existing symlink **objects** (not their targets). |
+  | `real_path/1` | **Yes** — recursive | You need the canonical path that the OS will resolve *after* following symlinks.  Use **before** writing into a directory that might be a symlink. |
+  | `resolve_managed_path/2` | **No** | Convenience wrapper: validates the repo name and checks `within_root?/2`.  Returns the literal path for materialisation. |
+
+  ### Rule of thumb
+
+  * Creating a **new** path (e.g. `File.ln_s/2`) → `within_root?/2` is enough.
+  * Writing **into** an existing path (e.g. `git clone`, `File.write!/2`) →
+    call `real_path/1` first, then `within_root?/2` on the result.
+
+  ## Examples
+
+      # Lexical containment — does NOT follow symlinks
+      iex> Graft.Safety.within_root?("/tmp/link_to_etc", "/tmp")
+      :ok   # passes because the path *string* is under /tmp
+
+      # Symlink-aware canonicalisation
+      iex> Graft.Safety.real_path("/tmp/link_to_etc")
+      {:ok, "/etc"}
+
+      # Combined — write operations should use both
+      iex> with {:ok, resolved} <- Graft.Safety.real_path(path),
+      ...>      :ok <- Graft.Safety.within_root?(resolved, root) do
+      ...>   :safe
+      ...> end
   """
 
   alias Graft.Error
@@ -15,6 +48,10 @@ defmodule Graft.Safety do
   Follows each symlink component-by-component and detects loops.  For
   non-existent tail components it falls back to `Path.expand/1`
   because a path that does not yet exist cannot be a symlink escape.
+
+  **Use this before writing into a path that might be a symlink.**
+  After resolving, call `within_root?/2` on the result to enforce root
+  containment on the *target* rather than on the path string.
 
   Returns `{:ok, canonical_path}` or `{:error, reason}`.
   """
@@ -69,8 +106,17 @@ defmodule Graft.Safety do
   end
 
   @doc """
-  Verify that `path` is physically inside `base`. Used to prevent
-  symlink or write operations from escaping the graft root.
+  Lexical containment: check whether `path` (as a string) is inside `base`.
+
+  **Does NOT follow symlinks.**  It expands `.`, `..`, and normalises the
+  path, then performs a prefix check.  This is the correct primitive when
+  you are creating a *new* object (symlink, directory) or deleting an
+  existing symlink *object*, because you only care about the path string
+  itself, not what it might resolve to.
+
+  If you are about to write *into* an existing path (e.g. `git clone`,
+  `File.write!`), you **must** call `real_path/1` first and then check
+  `within_root?/2` on the resolved result.
 
   Returns `:ok` or `{:error, Error.t()}`.
   """
@@ -78,12 +124,6 @@ defmodule Graft.Safety do
   def within_root?(path, base) do
     abs_path = Path.expand(path)
     abs_base = Path.expand(base)
-
-    # Note: Path.expand/1 normalizes . and .. but does NOT follow
-    # symlinks.  A symlink inside the workspace that points outside
-    # the root will pass this check.  Callers that need to follow
-    # symlinks (e.g. before writing into a potentially symlinked
-    # sub-directory) should use `real_path/1` first.
 
     if String.starts_with?(abs_path, abs_base <> "/") or abs_path == abs_base do
       :ok
