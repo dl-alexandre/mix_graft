@@ -1,0 +1,27 @@
+{
+  "affected_repos": [
+    "req_llm",
+    "jido_ai"
+  ],
+  "duration_ms": 0,
+  "failed_count": 0,
+  "fingerprint": {
+    "jido_ai": "7f1918344f6406495531260716a05214a6a1fa429c0f2ffaec3e8621266eb81e",
+    "req_llm": "02bcbc50da0e3baf6a48068829389a930f096b4b5d9111925a681c037ad60cf3"
+  },
+  "first_failure": null,
+  "generated_at": "<GENERATED_AT>",
+  "log_path": null,
+  "passed": true,
+  "passed_count": 2,
+  "repo_statuses": {
+    "jido_ai": "passed",
+    "req_llm": "passed"
+  },
+  "skipped_count": 0,
+  "target_apps": [
+    "req_llm"
+  ],
+  "version": 1,
+  "workspace_root": "<ROOT>"
+}

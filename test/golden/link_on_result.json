@@ -1,0 +1,26 @@
+{
+  "affected_repos": [
+    "jido_ai"
+  ],
+  "applied_changes": [
+    {
+      "dependency_source_after": "{:req_llm, path: \"../req_llm\"}",
+      "dependency_source_before": "{:req_llm, \"~> 1.0\"}",
+      "mix_exs_after_hash": "2469abbb4426a0a00fe49f1e612f3d554f78d268e3318ad1d47f2644bd6eefed",
+      "mix_exs_before_hash": "7f1918344f6406495531260716a05214a6a1fa429c0f2ffaec3e8621266eb81e",
+      "repo": "jido_ai",
+      "repo_path": "<ROOT>/jido_ai",
+      "target_app": "req_llm"
+    }
+  ],
+  "dry_run": false,
+  "duration_ms": 0,
+  "generated_at": "<GENERATED_AT>",
+  "operation": "link_on",
+  "state_path": "<ROOT>/.graft/state.json",
+  "target_apps": [
+    "req_llm"
+  ],
+  "warnings": [],
+  "workspace_root": "<ROOT>"
+}

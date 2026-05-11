@@ -1,0 +1,27 @@
+{
+  "affected_repos": [
+    "jido_ai"
+  ],
+  "dry_run": true,
+  "generated_at": "<GENERATED_AT>",
+  "operation": "link_off",
+  "remaining_entries": 0,
+  "remaining_target_apps": [],
+  "restorations": [
+    {
+      "mix_exs_after_hash": "2469abbb4426a0a00fe49f1e612f3d554f78d268e3318ad1d47f2644bd6eefed",
+      "mix_exs_before_hash": "7f1918344f6406495531260716a05214a6a1fa429c0f2ffaec3e8621266eb81e",
+      "mix_exs_path": "<ROOT>/jido_ai/mix.exs",
+      "preimage": "{:req_llm, \"~> 1.0\"}",
+      "replacement": "{:req_llm, path: \"../req_llm\"}",
+      "repo": "jido_ai",
+      "repo_path": "<ROOT>/jido_ai",
+      "target_app": "req_llm"
+    }
+  ],
+  "target_apps": [
+    "req_llm"
+  ],
+  "warnings": [],
+  "workspace_root": "<ROOT>"
+}

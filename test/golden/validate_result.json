@@ -1,0 +1,279 @@
+[
+  {
+    "affected_repos": [
+      "req_llm",
+      "jido_ai"
+    ],
+    "event": "plan_started",
+    "target_apps": [
+      "req_llm"
+    ],
+    "workspace_root": "<ROOT>"
+  },
+  {
+    "command_count": 3,
+    "event": "repo_planned",
+    "position": 1,
+    "repo": "req_llm",
+    "repo_path": "<ROOT>/req_llm"
+  },
+  {
+    "command_count": 3,
+    "event": "repo_planned",
+    "position": 2,
+    "repo": "jido_ai",
+    "repo_path": "<ROOT>/jido_ai"
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "description": "mix deps.get",
+    "event": "validation_planned",
+    "kind": "deps_get",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "description": "mix compile --warnings-as-errors",
+    "event": "validation_planned",
+    "kind": "compile",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "description": "mix test",
+    "event": "validation_planned",
+    "kind": "test",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "description": "mix deps.get",
+    "event": "validation_planned",
+    "kind": "deps_get",
+    "repo": "jido_ai"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "description": "mix compile --warnings-as-errors",
+    "event": "validation_planned",
+    "kind": "compile",
+    "repo": "jido_ai"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "description": "mix test",
+    "event": "validation_planned",
+    "kind": "test",
+    "repo": "jido_ai"
+  },
+  {
+    "commands": 6,
+    "event": "plan_completed",
+    "repos": 2,
+    "warnings": []
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "deps_get",
+    "output_tail": "",
+    "repo": "req_llm",
+    "status": "passed"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "compile",
+    "output_tail": "",
+    "repo": "req_llm",
+    "status": "passed"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "test",
+    "output_tail": "",
+    "repo": "req_llm",
+    "status": "passed"
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "deps_get",
+    "output_tail": "",
+    "repo": "jido_ai",
+    "status": "passed"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "compile",
+    "output_tail": "",
+    "repo": "jido_ai",
+    "status": "passed"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "duration_ms": 0,
+    "event": "command",
+    "exit_status": 0,
+    "failure_category": null,
+    "kind": "test",
+    "output_tail": "",
+    "repo": "jido_ai",
+    "status": "passed"
+  },
+  {
+    "affected_repos": [
+      "req_llm",
+      "jido_ai"
+    ],
+    "duration_ms": 0,
+    "event": "run_result",
+    "failed_count": 0,
+    "first_failure": null,
+    "log_path": null,
+    "outcomes": [
+      {
+        "commands": [
+          {
+            "argv": [
+              "deps.get"
+            ],
+            "description": "mix deps.get",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "deps_get",
+            "output_tail": "",
+            "status": "passed"
+          },
+          {
+            "argv": [
+              "compile",
+              "--warnings-as-errors"
+            ],
+            "description": "mix compile --warnings-as-errors",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "compile",
+            "output_tail": "",
+            "status": "passed"
+          },
+          {
+            "argv": [
+              "test"
+            ],
+            "description": "mix test",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "test",
+            "output_tail": "",
+            "status": "passed"
+          }
+        ],
+        "duration_ms": 0,
+        "repo": "req_llm",
+        "repo_path": "<ROOT>/req_llm",
+        "status": "passed"
+      },
+      {
+        "commands": [
+          {
+            "argv": [
+              "deps.get"
+            ],
+            "description": "mix deps.get",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "deps_get",
+            "output_tail": "",
+            "status": "passed"
+          },
+          {
+            "argv": [
+              "compile",
+              "--warnings-as-errors"
+            ],
+            "description": "mix compile --warnings-as-errors",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "compile",
+            "output_tail": "",
+            "status": "passed"
+          },
+          {
+            "argv": [
+              "test"
+            ],
+            "description": "mix test",
+            "duration_ms": 0,
+            "exit_status": 0,
+            "failure_category": null,
+            "kind": "test",
+            "output_tail": "",
+            "status": "passed"
+          }
+        ],
+        "duration_ms": 0,
+        "repo": "jido_ai",
+        "repo_path": "<ROOT>/jido_ai",
+        "status": "passed"
+      }
+    ],
+    "passed": true,
+    "passed_count": 2,
+    "skipped_count": 0,
+    "target_apps": [
+      "req_llm"
+    ],
+    "workspace_root": "<ROOT>"
+  }
+]

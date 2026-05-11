@@ -1,0 +1,89 @@
+[
+  {
+    "affected_repos": [
+      "req_llm",
+      "jido_ai"
+    ],
+    "event": "plan_started",
+    "target_apps": [
+      "req_llm"
+    ],
+    "workspace_root": "<ROOT>"
+  },
+  {
+    "command_count": 3,
+    "event": "repo_planned",
+    "position": 1,
+    "repo": "req_llm",
+    "repo_path": "<ROOT>/req_llm"
+  },
+  {
+    "command_count": 3,
+    "event": "repo_planned",
+    "position": 2,
+    "repo": "jido_ai",
+    "repo_path": "<ROOT>/jido_ai"
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "description": "mix deps.get",
+    "event": "validation_planned",
+    "kind": "deps_get",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "description": "mix compile --warnings-as-errors",
+    "event": "validation_planned",
+    "kind": "compile",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "description": "mix test",
+    "event": "validation_planned",
+    "kind": "test",
+    "repo": "req_llm"
+  },
+  {
+    "argv": [
+      "deps.get"
+    ],
+    "description": "mix deps.get",
+    "event": "validation_planned",
+    "kind": "deps_get",
+    "repo": "jido_ai"
+  },
+  {
+    "argv": [
+      "compile",
+      "--warnings-as-errors"
+    ],
+    "description": "mix compile --warnings-as-errors",
+    "event": "validation_planned",
+    "kind": "compile",
+    "repo": "jido_ai"
+  },
+  {
+    "argv": [
+      "test"
+    ],
+    "description": "mix test",
+    "event": "validation_planned",
+    "kind": "test",
+    "repo": "jido_ai"
+  },
+  {
+    "commands": 6,
+    "event": "plan_completed",
+    "repos": 2,
+    "warnings": []
+  }
+]

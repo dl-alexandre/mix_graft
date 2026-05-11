@@ -1,0 +1,11 @@
+{
+  "error": {
+    "details": {
+      "targets": [
+        "nope"
+      ]
+    },
+    "kind": "plan_target_not_in_workspace",
+    "message": "Target app(s) not declared as siblings in graft.exs: [:nope]"
+  }
+}

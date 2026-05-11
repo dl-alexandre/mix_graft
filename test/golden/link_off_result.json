@@ -1,0 +1,27 @@
+{
+  "affected_repos": [
+    "jido_ai"
+  ],
+  "dry_run": false,
+  "duration_ms": 0,
+  "generated_at": "<GENERATED_AT>",
+  "operation": "link_off",
+  "remaining_entries": 0,
+  "remaining_target_apps": [],
+  "restored": [
+    {
+      "mix_exs_path": "<ROOT>/jido_ai/mix.exs",
+      "preimage": "{:req_llm, \"~> 1.0\"}",
+      "replacement": "{:req_llm, path: \"../req_llm\"}",
+      "repo": "jido_ai",
+      "repo_path": "<ROOT>/jido_ai",
+      "target_app": "req_llm"
+    }
+  ],
+  "state_deleted": true,
+  "state_path": "<ROOT>/.graft/state.json",
+  "target_apps": [
+    "req_llm"
+  ],
+  "workspace_root": "<ROOT>"
+}
