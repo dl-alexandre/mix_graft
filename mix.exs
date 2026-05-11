@@ -1,13 +1,13 @@
-defmodule Contrib.MixProject do
+defmodule Graft.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/dl-alexandre/contrib"
+  @source_url "https://github.com/dl-alexandre/graft"
   @description "Transactional workspace tooling for Elixir OSS contributors."
 
   def project do
     [
-      app: :contrib,
+      app: :graft,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,

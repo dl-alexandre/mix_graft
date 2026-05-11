@@ -20,10 +20,10 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-contrib-*.tar
+graft-*.tar
 
 # Local link state — per-developer mutable state, not shared config.
-/.contrib/
+/.graft/
 
 # Editor / OS
 .DS_Store
