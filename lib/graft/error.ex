@@ -14,6 +14,10 @@ defmodule Graft.Error do
           | :manifest_duplicate_sibling_name
           | :manifest_duplicate_sibling_path
           | :manifest_sibling_outside_root
+          | :manifest_write_failed
+          | :clone_failed
+          | :clone_destination_exists
+          | :repo_not_elixir
           | :rewriter_malformed_source
           | :rewriter_invalid_replacement
           | :rewriter_unknown_dep_shape
@@ -45,6 +49,11 @@ defmodule Graft.Error do
           | :validate_executable_not_found
           | :validate_result_unreadable
           | :validate_result_missing
+          | :remove_target_required
+          | :remove_target_not_in_manifest
+          | :remove_dirty_repo
+          | :remove_path_unresolvable
+          | :remove_delete_failed
           | :not_implemented
 
   @type t :: %__MODULE__{
