@@ -1,7 +1,7 @@
 defmodule Graft.MixProject do
   use Mix.Project
 
-  @version "0.1.0"
+  @version "0.0.1"
   @source_url "https://github.com/dl-alexandre/mix_graft"
   @description "Transactional workspace tooling for Elixir OSS contributors."
 
