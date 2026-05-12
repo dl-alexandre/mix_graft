@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Graft.Validate do
-  @shortdoc "Validate that a target and its consumers build and test cleanly"
+  @shortdoc "Validate workspace health or run target build/test checks"
 
   @moduledoc """
   Run `mix deps.get → mix compile --warnings-as-errors → mix test` across
@@ -14,6 +14,7 @@ defmodule Mix.Tasks.Graft.Validate do
       mix graft.validate req_llm --dry-run      # show the plan only
       mix graft.validate req_llm --json         # JSONL output for agents
       mix graft.validate req_llm --continue     # run every repo even after a failure
+      mix graft.validate --quick                # manifest/workspace health only
 
   ## Trust contract
 
@@ -35,7 +36,13 @@ defmodule Mix.Tasks.Graft.Validate do
   alias Graft.Validate.{Plan, Runner}
   alias Graft.Validate.Plan.Render
 
-  @switches [json: :boolean, dry_run: :boolean, root: :string, continue: :boolean]
+  @switches [
+    json: :boolean,
+    dry_run: :boolean,
+    root: :string,
+    continue: :boolean,
+    quick: :boolean
+  ]
 
   @impl Mix.Task
   def run(argv) do
@@ -60,6 +67,9 @@ defmodule Mix.Tasks.Graft.Validate do
         format = if opts[:json], do: :jsonl, else: :text
 
         cond do
+          opts[:quick] ->
+            do_quick_execute(opts, target_strings)
+
           target_strings == [] ->
             {:fail, "graft.validate: at least one target app is required", :stderr}
 
@@ -105,6 +115,35 @@ defmodule Mix.Tasks.Graft.Validate do
       end
     else
       {:error, %Error{} = err} -> format_error(err, format)
+    end
+  end
+
+  defp do_quick_execute(opts, target_strings) do
+    cond do
+      opts[:dry_run] ->
+        {:fail, "graft.validate: --quick cannot be combined with --dry-run", :stderr}
+
+      opts[:continue] ->
+        {:fail, "graft.validate: --quick cannot be combined with --continue", :stderr}
+
+      true ->
+        root = opts[:root] || File.cwd!()
+        format = if opts[:json], do: :json, else: :text
+
+        case Graft.Validate.Quick.run(root, target_strings) do
+          {:ok, result} ->
+            output = Graft.Validate.Quick.render(result, format)
+
+            if result.passed? do
+              {:ok, output}
+            else
+              stream = if format == :json, do: :stdout, else: :stderr
+              {:fail, output, stream}
+            end
+
+          {:error, %Error{} = err} ->
+            format_error(err, if(format == :json, do: :jsonl, else: :text))
+        end
     end
   end
 

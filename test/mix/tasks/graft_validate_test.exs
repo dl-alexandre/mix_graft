@@ -90,6 +90,45 @@ defmodule Mix.Tasks.Graft.ValidateTest do
     end
   end
 
+  describe "execute/1 — quick" do
+    test "quick validates workspace health without planning mix commands", %{tmp_dir: tmp_dir} do
+      build_git_ws(tmp_dir)
+
+      assert {:ok, output} = Task.execute(["--quick", "--root", tmp_dir])
+      assert output =~ "Graft validate --quick"
+      assert output =~ "alpha [ok]"
+      refute output =~ "mix deps.get"
+      refute output =~ "mix compile"
+      refute output =~ "mix test"
+    end
+
+    test "quick failures exit through stderr in text mode", %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, "graft.exs"), """
+      %{root: ".", siblings: [%{name: :ghost, path: "ghost"}]}
+      """)
+
+      assert {:fail, output, :stderr} = Task.execute(["--quick", "--root", tmp_dir])
+      assert output =~ "ghost [failed]"
+      assert output =~ "path_missing"
+    end
+
+    test "quick failures exit through stdout in json mode", %{tmp_dir: tmp_dir} do
+      File.write!(Path.join(tmp_dir, "graft.exs"), """
+      %{root: ".", siblings: [%{name: :ghost, path: "ghost"}]}
+      """)
+
+      assert {:fail, output, :stdout} = Task.execute(["--quick", "--json", "--root", tmp_dir])
+      decoded = Jason.decode!(output)
+      assert decoded["quick"] == true
+      assert decoded["passed"] == false
+    end
+
+    test "quick rejects full-validate flags that do not apply", %{tmp_dir: tmp_dir} do
+      assert {:fail, output, :stderr} = Task.execute(["--quick", "--dry-run", "--root", tmp_dir])
+      assert output =~ "cannot be combined"
+    end
+  end
+
   ## ─── fixture ────────────────────────────────────────────────────────
 
   defp build_ws(tmp_dir, sibling_specs) do
@@ -117,5 +156,33 @@ defmodule Mix.Tasks.Graft.ValidateTest do
       end
       """)
     end)
+  end
+
+  defp build_git_ws(tmp_dir) do
+    dir = Path.join(tmp_dir, "alpha")
+    File.mkdir_p!(dir)
+    System.cmd("git", ["init", dir], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", dir, "remote", "add", "origin", "https://github.com/owner/alpha.git"],
+      stderr_to_stdout: true
+    )
+
+    File.write!(Path.join(dir, "mix.exs"), """
+    defmodule Alpha.MixProject do
+      use Mix.Project
+      def project, do: [app: :alpha, version: "0.1.0", deps: []]
+    end
+    """)
+
+    File.write!(Path.join(tmp_dir, "graft.exs"), """
+    %{
+      root: ".",
+      siblings: [
+        %{name: :alpha, path: "alpha", origin: "https://github.com/owner/alpha.git"}
+      ]
+    }
+    """)
   end
 end
