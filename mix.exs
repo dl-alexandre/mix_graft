@@ -2,12 +2,12 @@ defmodule Graft.MixProject do
   use Mix.Project
 
   @version "0.1.0"
-  @source_url "https://github.com/dl-alexandre/graft"
+  @source_url "https://github.com/dl-alexandre/mix_graft"
   @description "Transactional workspace tooling for Elixir OSS contributors."
 
   def project do
     [
-      app: :graft,
+      app: :mix_graft,
       version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -37,7 +37,8 @@ defmodule Graft.MixProject do
 
   defp package do
     [
-      files: ~w(lib mix.exs README.md LICENSE CHANGELOG.md usage-rules.md),
+      files:
+        ~w(lib docs scripts/graft_quickstart_smoke.sh mix.exs README.md LICENSE CHANGELOG.md usage-rules.md),
       licenses: ["Apache-2.0"],
       links: %{"GitHub" => @source_url}
     ]
@@ -46,7 +47,12 @@ defmodule Graft.MixProject do
   defp docs do
     [
       main: "readme",
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: [
+        "README.md",
+        "CHANGELOG.md",
+        "usage-rules.md",
+        "docs/trust_guarantees.md"
+      ],
       source_ref: "v#{@version}"
     ]
   end

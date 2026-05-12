@@ -4,7 +4,7 @@
 
 Graft treats a directory of cloned sibling Elixir repos as a single workspace. You can add siblings to a manifest, inspect what is present, run a quick workspace health check, see git posture, link dependencies for local development, and remove siblings again. Every command derives from the same workspace snapshot, so `status`, `link.on`, and `link.off` see the same world.
 
-> **Status:** pre-release. M1 (status + transactional `link.on`/`link.off` + locking + state versioning) is feature-frozen. Public JSON contracts are pinned by golden tests. See [`docs/milestones/M1_LINKING.md`](docs/milestones/M1_LINKING.md).
+> **Status:** `mix_graft` v0.1.0 publish candidate. The Hex package and OTP app are `mix_graft`; the public Mix task namespace remains `mix graft.*`. M1 (status + transactional `link.on`/`link.off` + validation + safe remove) is feature-frozen, with public JSON contracts pinned by golden tests.
 
 ## Why
 
@@ -17,13 +17,21 @@ If you maintain multiple sibling Elixir libraries — `phoenix` + `phoenix_live_
 
 Graft's `link.on` does this transitively, atomically, with bulletproof revert.
 
-## Install (development)
+## Install
 
-Graft is not yet published. Use it from source:
+Install the publish-ready Hex package as a dev-only dependency:
+
+```elixir
+def deps do
+  [{:mix_graft, "~> 0.1", only: :dev, runtime: false}]
+end
+```
+
+Or use the source checkout:
 
 ```bash
-git clone https://github.com/dl-alexandre/graft.git
-cd graft
+git clone https://github.com/dl-alexandre/mix_graft.git
+cd mix_graft
 mix deps.get
 mix compile
 ```
@@ -32,14 +40,6 @@ Then from any workspace directory containing a `graft.exs`:
 
 ```bash
 mix graft.status --root path/to/workspace
-```
-
-(When published, install as a dev-only dep:)
-
-```elixir
-def deps do
-  [{:graft, "~> 0.1", only: :dev, runtime: false}]
-end
 ```
 
 ## Quickstart: Empty Workspace to Cleanup
@@ -279,7 +279,7 @@ Behavior:
 
 - **Closure** — target + every transitive consumer in `workspace.deps`. Same closure shape link.on uses.
 - **Execution order** — topological: dependencies validate before their consumers, alphabetic within a layer. The first compile failure surfaces at the *root cause*, not at a downstream symptom.
-- **No lock** — validate doesn't acquire `.graft/lock`. It only touches `_build/`, `deps/`, and `mix.lock`, none of which are part of Graft's mutation trust contract. Running `link.on req_llm && contrib.validate req_llm` from one shell is the common case and must not deadlock.
+- **No lock** — validate doesn't acquire `.graft/lock`. It only touches `_build/`, `deps/`, and `mix.lock`, none of which are part of Graft's mutation trust contract. Running `link.on req_llm && graft.validate req_llm` from one shell is the common case and must not deadlock.
 - **Fail-fast by default** — the first failure halts further work. Every downstream repo is reported as `:skipped`, not `:failed`. `--continue` runs every repo regardless.
 - **Single first-failure pointer** — the result envelope's `first_failure` field is the earliest topological failure: one place to look first, not a list.
 - **JSONL stream** — `--json` emits newline-delimited JSON events: `plan_started`, `repo_planned` × N, `validation_planned` × M, `plan_completed`, then (during a real run) `command` × M, then `run_result`. Agents can act on partial streams; a killed run leaves a well-formed prefix.
