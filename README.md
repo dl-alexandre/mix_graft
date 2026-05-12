@@ -2,7 +2,7 @@
 
 **Transactional workspace tooling for Elixir OSS contributors.**
 
-Graft treats a directory of cloned sibling Elixir repos as a single workspace. One command links them together for joint local development, one command puts them back. Every command derives from the same workspace snapshot, so `status`, `link.on`, `link.off`, and (eventually) `doctor`, `outdated`, `pr.list` always see the same world.
+Graft treats a directory of cloned sibling Elixir repos as a single workspace. You can add siblings to a manifest, inspect what is present, run a quick workspace health check, see git posture, link dependencies for local development, and remove siblings again. Every command derives from the same workspace snapshot, so `status`, `link.on`, and `link.off` see the same world.
 
 > **Status:** pre-release. M1 (status + transactional `link.on`/`link.off` + locking + state versioning) is feature-frozen. Public JSON contracts are pinned by golden tests. See [`docs/milestones/M1_LINKING.md`](docs/milestones/M1_LINKING.md).
 
@@ -42,6 +42,75 @@ def deps do
 end
 ```
 
+## Quickstart: Empty Workspace to Cleanup
+
+Start with an empty workspace directory:
+
+```bash
+mkdir /tmp/my-oss-workspace
+cd /tmp/my-oss-workspace
+```
+
+Add a GitHub repository and register it in `graft.exs`:
+
+```bash
+mix graft.add elixir-lang/flow --to-manifest --root .
+```
+
+Inspect the manifest inventory:
+
+```bash
+mix graft.list --root .
+```
+
+Run the lightweight health check. This only checks the manifest, paths,
+`mix.exs`, git repository presence, and declared origin remotes. It does not
+run `mix deps.get`, `mix compile`, or `mix test`.
+
+```bash
+mix graft.validate --quick --root .
+```
+
+Inspect the workspace snapshot, including branch, dirty/clean state, and
+remote mismatch diagnostics when `origin` is known:
+
+```bash
+mix graft.status --root .
+```
+
+Remove the sibling from the manifest:
+
+```bash
+mix graft.remove flow --dry-run --root .
+mix graft.remove flow --root .
+```
+
+Remove the manifest entry and delete the sibling directory only when you
+explicitly ask for filesystem deletion:
+
+```bash
+mix graft.remove flow --delete --root .
+```
+
+Common failures are reported with the sibling name and the failed check:
+
+```text
+ghost [failed]
+  - path_missing: Path does not exist: /tmp/my-oss-workspace/ghost
+
+flow [failed]
+  - mix_exs_missing: mix.exs does not exist: /tmp/my-oss-workspace/flow/mix.exs
+
+flow [failed]
+  - origin_mismatch: Expected origin https://github.com/elixir-lang/flow.git, got https://github.com/example/flow.git
+```
+
+`mix graft.remove flow --delete` refuses to delete a dirty git repo. Commit or
+stash the changes, or pass `--force` when you have intentionally decided to
+discard the directory.
+
+The same happy path is captured in `scripts/graft_quickstart_smoke.sh`.
+
 ## Manifest: `graft.exs`
 
 Drop a `graft.exs` file at the workspace root that declares the sibling repos:
@@ -50,10 +119,10 @@ Drop a `graft.exs` file at the workspace root that declares the sibling repos:
 %{
   root: ".",
   siblings: [
-    %{name: :req_llm,   path: "req_llm"},
-    %{name: :jido,      path: "jido"},
-    %{name: :jido_ai,   path: "jido_ai"},
-    %{name: :jido_chat, path: "jido_chat"}
+      %{name: :req_llm,   path: "req_llm"},
+      %{name: :jido,      path: "jido"},
+      %{name: :jido_ai,   path: "jido_ai"},
+      %{name: :jido_chat, path: "jido_chat", origin: "https://github.com/agentjido/jido_chat.git"}
   ]
 }
 ```
@@ -61,10 +130,44 @@ Drop a `graft.exs` file at the workspace root that declares the sibling repos:
 - `root` — workspace root, interpreted relative to the manifest file. Use `"."`.
 - `siblings[].name` — atom; the OTP application name of that repo.
 - `siblings[].path` — directory name under `root`; must resolve inside `root`.
+- `siblings[].origin` — optional git remote URL. `graft.add --to-manifest`
+  records this automatically for GitHub repos. `validate --quick` and `status`
+  compare it to the repo's current `origin` remote when present.
 
 Sibling directories that don't exist yet (or lack a `mix.exs`) are still valid manifest entries — `status` will surface them as missing.
 
 ## Commands
+
+### `mix graft.add OWNER/REPO [OWNER/REPO …]`
+
+Clones GitHub repos into the workspace. With `--to-manifest`, it creates
+`graft.exs` when absent and records the sibling path and expected origin.
+
+```bash
+mix graft.add elixir-lang/flow --to-manifest
+mix graft.add elixir-lang/flow --to-manifest --root path/to/workspace
+```
+
+If the destination directory already exists and has a matching `origin`, Graft
+uses it idempotently. If the destination is a symlink that resolves outside the
+workspace, the add is rejected before cloning or writing the manifest.
+
+### `mix graft.list`
+
+Reads `graft.exs` and prints a lightweight inventory:
+
+```text
+$ mix graft.list
+Graft workspace: /Users/me/oss
+Siblings (3):
+
+  req_llm      req_llm          [present]
+  jido         jido             [missing] path does not exist
+  jido_ai      jido_ai          [invalid] missing mix.exs
+```
+
+`list` does not shell out to git and does not parse dependencies. It only
+classifies each manifest entry as `present`, `missing`, or basically `invalid`.
 
 ### `mix graft.status`
 
@@ -78,7 +181,7 @@ Repos: 4
 
 jido
   status: ok
-  git: main ↑ origin/main
+  git: main ↑ origin/main clean
   deps: hex=0 path=0 git=0 unknown=0
 
 jido_ai
@@ -112,6 +215,10 @@ JSON mode emits the full structured `git` record per repo (`is_git_repo`, `branc
 ```bash
 mix graft.status --json | jq '.repos[] | {name, git}'
 ```
+
+When `origin` is declared for a sibling, text output includes `remote: origin ok`
+or a remote mismatch line; JSON output includes `origin.expected`,
+`origin.actual`, and `origin.matches`.
 
 The JSON contract is pinned by golden tests. `Graft.GitState` is the underlying read-only inspector — observational only, no caching, no background refresh, no mutation. Agents can call it directly to read git posture for any path.
 
@@ -150,6 +257,24 @@ mix graft.validate req_llm --json          # JSONL stream for agents
 mix graft.validate req_llm --continue      # run every repo even after a failure
 ```
 
+Use quick mode when you only need manifest/workspace health:
+
+```bash
+mix graft.validate --quick
+mix graft.validate req_llm --quick
+mix graft.validate --quick --json
+```
+
+Quick mode checks only:
+
+- the manifest loads
+- each selected sibling path exists
+- each selected sibling has a `mix.exs`
+- each selected sibling is a git repository
+- the repo `origin` matches `siblings[].origin` when that field is present
+
+It never runs `mix deps.get`, `mix compile`, or `mix test`.
+
 Behavior:
 
 - **Closure** — target + every transitive consumer in `workspace.deps`. Same closure shape link.on uses.
@@ -176,6 +301,23 @@ mix graft.link.off req_llm --json
 
 If the file's current hash differs from the recorded post-link hash (someone hand-edited it), `link.off` aborts before mutating with a `:off_hash_mismatch` error. State entries are pruned only after successful restoration; when no entries remain, `.graft/state.json` is deleted.
 
+### `mix graft.remove TARGET [TARGET …]`
+
+Removes siblings from `graft.exs`.
+
+```bash
+mix graft.remove req_llm --dry-run
+mix graft.remove req_llm
+mix graft.remove req_llm --delete
+mix graft.remove req_llm --delete --force
+mix graft.remove req_llm --json
+```
+
+Default behavior only edits the manifest. Filesystem deletion requires
+`--delete`. Dirty git repositories are refused for deletion unless `--force` is
+supplied. Use `--dry-run` to see exactly what would be removed before changing
+anything.
+
 ## Trust guarantees
 
 These are first-class promises, not implementation niceties. They're checked by tests and pinned by golden JSON fixtures.
@@ -199,7 +341,7 @@ The architectural surface is intentionally narrow at M1. Known gaps:
 
 - **Single-target `Plan.build` for shared consumers** — building one plan with multiple targets where two targets share the same consumer relies on independent before-hashes. Run targets in separate `link.on` invocations (state merging handles accumulation).
 - **No `mix deps.unlock` / `mix deps.get`** — Graft only rewrites `mix.exs`. You'll still run those yourself after a link change (intentional; we don't shell out to Mix).
-- **No git integration** — Graft never touches `.git`. Stash, commit, or revert as you'd normally do.
+- **No git mutation** — Graft inspects `.git` for status and remote diagnostics, but never mutates git state. Stash, commit, or revert as you'd normally do.
 - **No stale-lock detection** — if a process crashes mid-run, the `.graft/lock` file remains. Remove it manually after confirming no other Graft process is running. Liveness checks are deferred.
 - **No concurrency on a single workspace** — by design. The lock is the boundary.
 - **No `link.off` --force** — hash mismatch is a hard abort. Inspect the file, decide what's right, restore manually if needed.

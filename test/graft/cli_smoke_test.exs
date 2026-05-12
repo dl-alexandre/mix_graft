@@ -98,6 +98,40 @@ defmodule Graft.CLISmokeTest do
     assert "validation_planned" in types
   end
 
+  test "empty workspace add/list/quick/status/remove happy path", %{tmp_dir: tmp_dir} do
+    empty_root = Path.join(tmp_dir, "empty")
+    File.mkdir_p!(empty_root)
+    build_existing_repo(empty_root, "flow", "https://github.com/elixir-lang/flow.git")
+
+    Mix.Task.rerun("graft.add", ["elixir-lang/flow", "--to-manifest", "--root", empty_root])
+    assert_received {:mix_shell, :info, [add_output]}
+    assert add_output =~ "elixir-lang/flow"
+    assert File.exists?(Path.join(empty_root, "graft.exs"))
+
+    Mix.Task.rerun("graft.list", ["--root", empty_root])
+    assert_received {:mix_shell, :info, [list_output]}
+    assert list_output =~ "flow"
+    assert list_output =~ "[present]"
+
+    Mix.Task.rerun("graft.validate", ["--quick", "--root", empty_root])
+    assert_received {:mix_shell, :info, [validate_output]}
+    assert validate_output =~ "Graft validate --quick"
+    assert validate_output =~ "flow [ok]"
+
+    Mix.Task.rerun("graft.status", ["--root", empty_root])
+    assert_received {:mix_shell, :info, [status_output]}
+    assert status_output =~ "Graft workspace"
+    assert status_output =~ "flow"
+
+    Mix.Task.rerun("graft.remove", ["flow", "--root", empty_root])
+    assert_received {:mix_shell, :info, [remove_output]}
+    assert remove_output =~ "Graft remove (applied)"
+    assert File.dir?(Path.join(empty_root, "flow"))
+
+    {:ok, manifest} = Graft.Manifest.load(empty_root)
+    assert manifest.siblings == []
+  end
+
   test "lock rejection — link.on exits non-zero when workspace is held",
        %{tmp_dir: tmp_dir} do
     File.mkdir_p!(Path.join(tmp_dir, ".graft"))
@@ -153,6 +187,20 @@ defmodule Graft.CLISmokeTest do
       use Mix.Project
       def project, do: [app: :jido_ai, version: "0.1.0", deps: deps()]
       defp deps, do: [{:req_llm, "~> 1.0"}]
+    end
+    """)
+  end
+
+  defp build_existing_repo(root, name, origin) do
+    dir = Path.join(root, name)
+    File.mkdir_p!(dir)
+    System.cmd("git", ["init", dir], stderr_to_stdout: true)
+    System.cmd("git", ["-C", dir, "remote", "add", "origin", origin], stderr_to_stdout: true)
+
+    File.write!(Path.join(dir, "mix.exs"), """
+    defmodule #{Macro.camelize(name)}.MixProject do
+      use Mix.Project
+      def project, do: [app: #{inspect(String.to_atom(name))}, version: "0.1.0", deps: []]
     end
     """)
   end
