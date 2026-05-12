@@ -128,7 +128,8 @@ defmodule Graft.Workspace do
       path: s.path,
       absolute_path: abs,
       exists?: exists?,
-      has_mix_exs?: has_mix_exs?
+      has_mix_exs?: has_mix_exs?,
+      origin: s.origin
     }
   end
 

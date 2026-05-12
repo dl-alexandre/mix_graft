@@ -19,6 +19,7 @@ defmodule Graft.Manifest do
   * `:root` must be a binary path (relative or absolute)
   * `:siblings` must be a list
   * every sibling must declare an atom `:name` and a binary `:path`
+  * sibling `:origin`, when present, must be a binary Git remote URL
   * sibling names must be unique
   * sibling paths must be unique
   * every resolved sibling path must remain strictly inside the
@@ -40,10 +41,11 @@ defmodule Graft.Manifest do
     @type t :: %__MODULE__{
             name: atom(),
             path: Path.t(),
-            absolute_path: Path.t()
+            absolute_path: Path.t(),
+            origin: String.t() | nil
           }
 
-    defstruct [:name, :path, :absolute_path]
+    defstruct [:name, :path, :absolute_path, :origin]
   end
 
   @type t :: %__MODULE__{
@@ -60,6 +62,34 @@ defmodule Graft.Manifest do
   @doc "The conventional manifest filename."
   @spec filename() :: String.t()
   def filename, do: @manifest_filename
+
+  @doc """
+  Write a manifest using Graft's canonical literal data format.
+
+  `siblings` may contain `%Sibling{}` structs or maps with `:name`, `:path`,
+  and optional `:origin`. The write is atomic within the manifest directory.
+  """
+  @spec write(Path.t(), Path.t(), [Sibling.t() | map()]) :: :ok | {:error, Error.t()}
+  def write(path, root_declared, siblings) when is_binary(path) and is_binary(root_declared) do
+    entries = Enum.map(siblings, &sibling_entry/1)
+    content = format(root_declared, entries)
+    tmp_path = path <> ".tmp"
+
+    with :ok <- File.write(tmp_path, content),
+         :ok <- File.rename(tmp_path, path) do
+      :ok
+    else
+      {:error, reason} ->
+        File.rm(tmp_path)
+
+        {:error,
+         Error.new(
+           :manifest_write_failed,
+           "Failed to write manifest #{path}: #{inspect(reason)}",
+           %{path: path, reason: reason}
+         )}
+    end
+  end
 
   @doc """
   Load and validate the manifest from `dir` (defaults to `File.cwd!/0`).
@@ -150,7 +180,10 @@ defmodule Graft.Manifest do
         {key, parse_literal(value)}
 
       other ->
-        throw({:error, Error.new(:manifest_invalid_field, "Map keys must be atoms, got: #{inspect(other)}")})
+        throw(
+          {:error,
+           Error.new(:manifest_invalid_field, "Map keys must be atoms, got: #{inspect(other)}")}
+        )
     end)
   end
 
@@ -165,7 +198,13 @@ defmodule Graft.Manifest do
   defp parse_literal(nil), do: nil
 
   defp parse_literal(other) do
-    throw({:error, Error.new(:manifest_invalid_field, "Only literal values permitted in manifest, got: #{Macro.to_string(other)}")})
+    throw(
+      {:error,
+       Error.new(
+         :manifest_invalid_field,
+         "Only literal values permitted in manifest, got: #{Macro.to_string(other)}"
+       )}
+    )
   end
 
   ## ─── Top-level shape ────────────────────────────────────────────────
@@ -243,10 +282,13 @@ defmodule Graft.Manifest do
 
   defp build_sibling(raw, idx, abs_root) when is_map(raw) do
     with {:ok, name} <- fetch_sibling_field(raw, :name, &is_atom/1, "atom", idx),
-         {:ok, path} <- fetch_sibling_field(raw, :path, &is_binary/1, "binary", idx, %{name: name}),
+         {:ok, path} <-
+           fetch_sibling_field(raw, :path, &is_binary/1, "binary", idx, %{name: name}),
+         {:ok, origin} <-
+           fetch_optional_sibling_field(raw, :origin, &is_binary/1, "binary", idx, %{name: name}),
          abs = Path.expand(path, abs_root),
          :ok <- check_inside_root(abs, abs_root, name, path, idx) do
-      {:ok, %Sibling{name: name, path: path, absolute_path: abs}}
+      {:ok, %Sibling{name: name, path: path, absolute_path: abs, origin: origin}}
     end
   end
 
@@ -284,6 +326,30 @@ defmodule Graft.Manifest do
            "Sibling#{context_msg} at index #{idx} is missing required field #{inspect(key)}",
            %{index: idx, key: key, name: context[:name]}
          )}
+    end
+  end
+
+  defp fetch_optional_sibling_field(map, key, predicate, expected, idx, context) do
+    case Map.fetch(map, key) do
+      {:ok, nil} ->
+        {:ok, nil}
+
+      {:ok, v} ->
+        if predicate.(v) do
+          {:ok, v}
+        else
+          context_msg = if name = context[:name], do: " #{inspect(name)}", else: ""
+
+          {:error,
+           Error.new(
+             :manifest_invalid_field,
+             "Sibling#{context_msg} at index #{idx}: optional #{inspect(key)} must be #{expected}, got #{inspect(v)}",
+             %{index: idx, key: key, value: v, name: context[:name]}
+           )}
+        end
+
+      :error ->
+        {:ok, nil}
     end
   end
 
@@ -341,5 +407,50 @@ defmodule Graft.Manifest do
            details
          )}
     end
+  end
+
+  defp sibling_entry(%Sibling{name: name, path: path, origin: origin}) do
+    sibling_entry(%{name: name, path: path, origin: origin})
+  end
+
+  defp sibling_entry(%{name: name, path: path} = sibling)
+       when is_atom(name) and is_binary(path) do
+    base = %{name: name, path: path}
+
+    case Map.get(sibling, :origin) do
+      origin when is_binary(origin) -> Map.put(base, :origin, origin)
+      _ -> base
+    end
+  end
+
+  defp format(root_declared, siblings) do
+    rendered_siblings =
+      siblings
+      |> Enum.map(&format_sibling/1)
+      |> Enum.join(",\n")
+
+    """
+    %{
+      root: #{inspect(root_declared)},
+      siblings: [
+    #{rendered_siblings}
+      ]
+    }
+    """
+  end
+
+  defp format_sibling(%{name: name, path: path} = sibling) do
+    fields = [
+      "name: #{inspect(name)}",
+      "path: #{inspect(path)}"
+    ]
+
+    fields =
+      case Map.get(sibling, :origin) do
+        origin when is_binary(origin) -> fields ++ ["origin: #{inspect(origin)}"]
+        _ -> fields
+      end
+
+    "    %{" <> Enum.join(fields, ", ") <> "}"
   end
 end

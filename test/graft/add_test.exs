@@ -40,7 +40,13 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "repo")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/repo.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/repo.git"],
+      stderr_to_stdout: true
+    )
+
     File.write!(Path.join(repo_dir, "mix.exs"), "# fake mix.exs")
 
     results = Add.clone(["owner/repo"], root)
@@ -54,7 +60,13 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "repo")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/other/repo.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/other/repo.git"],
+      stderr_to_stdout: true
+    )
+
     File.write!(Path.join(repo_dir, "mix.exs"), "# fake mix.exs")
 
     results = Add.clone(["owner/repo"], root)
@@ -81,7 +93,12 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "repo")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/repo.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/repo.git"],
+      stderr_to_stdout: true
+    )
 
     results = Add.clone(["owner/repo"], root)
     assert {"owner/repo", {:error, %Error{kind: :repo_not_elixir}}} = Enum.at(results, 0)
@@ -89,7 +106,13 @@ defmodule Graft.AddTest do
 
   test "clone rejects symlink that escapes the root" do
     root = tmp_root()
-    outside = Path.join(System.tmp_dir!(), "graft_add_outside_#{Base.encode16(:crypto.strong_rand_bytes(4), case: :lower)}")
+
+    outside =
+      Path.join(
+        System.tmp_dir!(),
+        "graft_add_outside_#{Base.encode16(:crypto.strong_rand_bytes(4), case: :lower)}"
+      )
+
     File.mkdir_p!(outside)
     link = Path.join(root, "repo")
 
@@ -115,7 +138,13 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "flow")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/elixir-lang/flow.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/elixir-lang/flow.git"],
+      stderr_to_stdout: true
+    )
+
     File.write!(Path.join(repo_dir, "mix.exs"), "# fake")
 
     refute File.exists?(Path.join(root, "graft.exs"))
@@ -128,6 +157,7 @@ defmodule Graft.AddTest do
     {:ok, manifest} = Graft.Manifest.load(root)
     assert length(manifest.siblings) == 1
     assert hd(manifest.siblings).name == :flow
+    assert hd(manifest.siblings).origin == "https://github.com/elixir-lang/flow.git"
   end
 
   test "clone with --to-manifest appends to graft.exs" do
@@ -143,7 +173,13 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "new_repo")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/new_repo.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/new_repo.git"],
+      stderr_to_stdout: true
+    )
+
     File.write!(Path.join(repo_dir, "mix.exs"), "# fake")
 
     results = Add.clone(["owner/new_repo"], root, to_manifest: true)
@@ -154,6 +190,9 @@ defmodule Graft.AddTest do
     names = Enum.map(manifest.siblings, & &1.name)
     assert :existing in names
     assert :new_repo in names
+
+    new_repo = Enum.find(manifest.siblings, &(&1.name == :new_repo))
+    assert new_repo.origin == "https://github.com/owner/new_repo.git"
   end
 
   test "clone with --to-manifest skips duplicate names" do
@@ -168,7 +207,13 @@ defmodule Graft.AddTest do
     repo_dir = Path.join(root, "existing")
     File.mkdir_p!(repo_dir)
     System.cmd("git", ["init", repo_dir], stderr_to_stdout: true)
-    System.cmd("git", ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/existing.git"], stderr_to_stdout: true)
+
+    System.cmd(
+      "git",
+      ["-C", repo_dir, "remote", "add", "origin", "https://github.com/owner/existing.git"],
+      stderr_to_stdout: true
+    )
+
     File.write!(Path.join(repo_dir, "mix.exs"), "# fake")
 
     results = Add.clone(["owner/existing"], root, to_manifest: true)

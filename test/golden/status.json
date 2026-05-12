@@ -20,10 +20,16 @@
         "head_sha": null,
         "in_progress": "none",
         "is_git_repo": false,
+        "origin_url": null,
         "upstream": null
       },
       "has_mix_exs": true,
       "name": "jido_ai",
+      "origin": {
+        "actual": null,
+        "expected": null,
+        "matches": null
+      },
       "status": "ok"
     },
     {
@@ -44,10 +50,16 @@
         "head_sha": null,
         "in_progress": "none",
         "is_git_repo": false,
+        "origin_url": null,
         "upstream": null
       },
       "has_mix_exs": true,
       "name": "req_llm",
+      "origin": {
+        "actual": null,
+        "expected": null,
+        "matches": null
+      },
       "status": "ok"
     }
   ],

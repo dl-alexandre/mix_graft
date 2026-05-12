@@ -4,7 +4,8 @@ defmodule Graft.List do
 
   Unlike `Graft.Status`, this does **not** snapshot the workspace, parse
   `mix.exs`, call `git`, or check Hex. It only reads `graft.exs` and
-  checks whether each declared sibling path exists on disk.
+  checks whether each declared sibling path is present, missing, or
+  obviously invalid on disk.
 
   ## Output formats
 
@@ -42,14 +43,35 @@ defmodule Graft.List do
   ## ─── Data gathering ─────────────────────────────────────────────────
 
   defp annotate_siblings(siblings) do
-    Enum.map(siblings, fn %Sibling{name: name, path: path, absolute_path: abs} ->
+    Enum.map(siblings, fn %Sibling{name: name, path: path, absolute_path: abs, origin: origin} ->
+      status = sibling_status(abs)
+
       %{
         name: name,
         path: path,
         absolute_path: abs,
-        exists: File.dir?(abs)
+        origin: origin,
+        exists: File.exists?(abs),
+        status: status.status,
+        detail: status.detail
       }
     end)
+  end
+
+  defp sibling_status(abs) do
+    cond do
+      not File.exists?(abs) ->
+        %{status: :missing, detail: "path does not exist"}
+
+      not File.dir?(abs) ->
+        %{status: :invalid, detail: "path is not a directory"}
+
+      not File.regular?(Path.join(abs, "mix.exs")) ->
+        %{status: :invalid, detail: "missing mix.exs"}
+
+      true ->
+        %{status: :present, detail: "ready"}
+    end
   end
 
   ## ─── Text rendering ─────────────────────────────────────────────────
@@ -65,8 +87,9 @@ defmodule Graft.List do
 
     lines =
       Enum.map(siblings, fn s ->
-        status = if s.exists, do: "[exists]", else: "[missing]"
-        "  #{pad_name(s.name)} #{pad_path(s.path)} #{status}"
+        status = "[#{s.status}]"
+        detail = if s.status == :present, do: "", else: " #{s.detail}"
+        "  #{pad_name(s.name)} #{pad_path(s.path)} #{status}#{detail}"
       end)
 
     (header ++ lines)
@@ -98,7 +121,10 @@ defmodule Graft.List do
             name: to_string(s.name),
             path: s.path,
             absolute_path: s.absolute_path,
-            exists: s.exists
+            origin: s.origin,
+            exists: s.exists,
+            status: Atom.to_string(s.status),
+            detail: s.detail
           }
         end)
     }

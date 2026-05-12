@@ -93,6 +93,7 @@ defmodule Graft.GitStateTest do
       commit_file(working, "b.txt", "2")
 
       g = GitState.read(working)
+      assert g.origin_url == upstream
       assert g.upstream == "origin/main"
       assert g.ahead == 2
       assert g.behind == 0

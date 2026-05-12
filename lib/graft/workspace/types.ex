@@ -9,6 +9,7 @@ defmodule Graft.Workspace.Repo do
           absolute_path: Path.t(),
           exists?: boolean(),
           has_mix_exs?: boolean(),
+          origin: String.t() | nil,
           ownership: ownership()
         }
 
@@ -18,6 +19,7 @@ defmodule Graft.Workspace.Repo do
     :absolute_path,
     exists?: false,
     has_mix_exs?: false,
+    origin: nil,
     ownership: :external
   ]
 end

@@ -15,6 +15,7 @@ defmodule Graft.ListTest do
     test "lists siblings with existence markers" do
       dir = tmp_dir()
       File.mkdir_p!(Path.join(dir, "req_llm"))
+      File.write!(Path.join([dir, "req_llm", "mix.exs"]), "# fake\n")
       # jido is NOT created — should show [missing]
 
       write_manifest(dir, """
@@ -30,9 +31,20 @@ defmodule Graft.ListTest do
       assert {:ok, output} = List.render(dir, :text)
       assert output =~ "Siblings (2):"
       assert output =~ "req_llm"
-      assert output =~ "[exists]"
+      assert output =~ "[present]"
       assert output =~ "jido"
       assert output =~ "[missing]"
+    end
+
+    test "marks existing non-Elixir paths as invalid" do
+      dir = tmp_dir()
+      File.mkdir_p!(Path.join(dir, "not_elixir"))
+
+      write_manifest(dir, ~s|%{root: ".", siblings: [%{name: :not_elixir, path: "not_elixir"}]}|)
+
+      assert {:ok, output} = List.render(dir, :text)
+      assert output =~ "[invalid]"
+      assert output =~ "missing mix.exs"
     end
 
     test "returns error for missing manifest" do
@@ -45,6 +57,7 @@ defmodule Graft.ListTest do
     test "renders structured data" do
       dir = tmp_dir()
       File.mkdir_p!(Path.join(dir, "a"))
+      File.write!(Path.join([dir, "a", "mix.exs"]), "# fake\n")
 
       write_manifest(dir, ~s|%{root: ".", siblings: [%{name: :a, path: "a"}]}|)
 
@@ -55,6 +68,7 @@ defmodule Graft.ListTest do
       assert sib["name"] == "a"
       assert sib["path"] == "a"
       assert sib["exists"] == true
+      assert sib["status"] == "present"
       assert sib["absolute_path"] == Path.join(dir, "a")
     end
 
@@ -67,6 +81,7 @@ defmodule Graft.ListTest do
       decoded = Jason.decode!(json)
       assert [sib] = decoded["siblings"]
       assert sib["exists"] == false
+      assert sib["status"] == "missing"
     end
   end
 

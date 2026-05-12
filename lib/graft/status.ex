@@ -8,7 +8,7 @@ defmodule Graft.Status do
   inputs are the snapshot struct already supplied by the caller.
   """
 
-  alias Graft.{GitState, Workspace}
+  alias Graft.{GitRemote, GitState, Workspace}
   alias Graft.Validate.ResultFile
   alias Graft.Validate.ResultFile.Persisted, as: ValidatePersisted
   alias Graft.Workspace.Repo
@@ -57,10 +57,13 @@ defmodule Graft.Status do
         [
           to_string(r.name),
           "  status: ok",
-          "  git: #{git_text(git)}",
-          "  deps: #{format_deps_line(counts)}",
-          ""
-        ]
+          "  git: #{git_text(git)}"
+        ] ++
+          remote_text_block(r, git) ++
+          [
+            "  deps: #{format_deps_line(counts)}",
+            ""
+          ]
 
       {:missing, msg} ->
         [to_string(r.name), "  status: #{msg}", ""]
@@ -90,7 +93,7 @@ defmodule Graft.Status do
 
   defp flag_segments(%GitState{} = g) do
     [
-      if(g.dirty?, do: "dirty", else: nil),
+      if(g.dirty?, do: "dirty", else: "clean"),
       if(g.detached_head?, do: "detached", else: nil),
       if(g.in_progress != :none, do: Atom.to_string(g.in_progress), else: nil)
     ]
@@ -144,6 +147,7 @@ defmodule Graft.Status do
       exists: r.exists?,
       has_mix_exs: r.has_mix_exs?,
       status: status_string(r),
+      origin: origin_json(r, git),
       deps: count_deps(all_deps, r.name),
       git: git_json(git)
     }
@@ -184,6 +188,7 @@ defmodule Graft.Status do
       branch: g.branch,
       detached_head: g.detached_head?,
       head_sha: g.head_sha,
+      origin_url: g.origin_url,
       upstream: g.upstream,
       ahead: g.ahead,
       behind: g.behind,
@@ -204,6 +209,37 @@ defmodule Graft.Status do
       :ok -> "ok"
       {:missing, msg} -> msg
     end
+  end
+
+  defp remote_text_block(%Repo{origin: nil}, _git), do: []
+
+  defp remote_text_block(%Repo{origin: expected}, %GitState{
+         is_git_repo?: true,
+         origin_url: actual
+       }) do
+    if GitRemote.same?(expected, actual) do
+      ["  remote: origin ok"]
+    else
+      ["  remote: mismatch expected #{expected}, actual #{actual || "(none)"}"]
+    end
+  end
+
+  defp remote_text_block(%Repo{origin: expected}, _git) do
+    ["  remote: mismatch expected #{expected}, actual (unavailable)"]
+  end
+
+  defp origin_json(%Repo{origin: expected}, git) do
+    actual =
+      case git do
+        %GitState{origin_url: url} -> url
+        _ -> nil
+      end
+
+    %{
+      expected: expected,
+      actual: actual,
+      matches: if(expected, do: GitRemote.same?(expected, actual), else: nil)
+    }
   end
 
   defp count_deps(all_deps, repo_name) do

@@ -30,6 +30,7 @@ defmodule Graft.GitState do
     * `:head_sha` — short SHA of HEAD, or `nil` for an empty repo.
     * `:upstream` — symbolic upstream like `"origin/main"`, or `nil`
       if no upstream is set.
+    * `:origin_url` — configured `origin` remote URL, or `nil` when absent.
     * `:ahead` / `:behind` — commit counts relative to the upstream
       (both zero when no upstream is set).
     * `:dirty?` — true iff `git status --porcelain` emits any line.
@@ -57,6 +58,7 @@ defmodule Graft.GitState do
           branch: String.t() | nil,
           detached_head?: boolean(),
           head_sha: String.t() | nil,
+          origin_url: String.t() | nil,
           upstream: String.t() | nil,
           ahead: non_neg_integer(),
           behind: non_neg_integer(),
@@ -71,6 +73,7 @@ defmodule Graft.GitState do
             branch: nil,
             detached_head?: false,
             head_sha: nil,
+            origin_url: nil,
             upstream: nil,
             ahead: 0,
             behind: 0,
@@ -108,6 +111,7 @@ defmodule Graft.GitState do
     base
     |> set_branch(repo_path)
     |> set_head_sha(repo_path)
+    |> set_origin_url(repo_path)
     |> set_upstream_and_counts(repo_path)
     |> set_dirty(repo_path)
     |> set_in_progress(repo_path)
@@ -136,6 +140,13 @@ defmodule Graft.GitState do
   defp set_head_sha(state, repo_path) do
     case git(repo_path, ["rev-parse", "--short", "HEAD"]) do
       {:ok, sha} when is_binary(sha) and sha != "" -> %{state | head_sha: sha}
+      _ -> state
+    end
+  end
+
+  defp set_origin_url(state, repo_path) do
+    case git(repo_path, ["remote", "get-url", "origin"]) do
+      {:ok, url} when is_binary(url) and url != "" -> %{state | origin_url: url}
       _ -> state
     end
   end

@@ -2,6 +2,7 @@ defmodule Graft.StatusTest do
   use ExUnit.Case, async: true
 
   alias Graft.{Status, Workspace}
+  alias Graft.GitState
   alias Graft.Workspace.{Dependency, Repo}
 
   describe "render/2 — :text" do
@@ -52,6 +53,36 @@ defmodule Graft.StatusTest do
       assert Status.render(ws, :text) =~ "deps: hex=1 path=0 git=0 unknown=0"
     end
 
+    test "shows clean or dirty git state and remote mismatch when origin is known" do
+      ws = %Workspace{
+        root: "/tmp/oss",
+        generated_at: ~U[2026-01-01 00:00:00Z],
+        repos: [
+          %Repo{
+            name: :solo,
+            path: "solo",
+            exists?: true,
+            has_mix_exs?: true,
+            origin: "https://github.com/owner/solo.git"
+          }
+        ],
+        deps: [],
+        git: [
+          %GitState{
+            repo: :solo,
+            is_git_repo?: true,
+            branch: "main",
+            origin_url: "https://github.com/other/solo.git",
+            dirty?: false
+          }
+        ]
+      }
+
+      out = Status.render(ws, :text)
+      assert out =~ "git: main (no upstream) clean"
+      assert out =~ "remote: mismatch expected https://github.com/owner/solo.git"
+    end
+
     test "header preserves manifest declaration order" do
       ws = workspace_with_three_repos()
       out = Status.render(ws, :text)
@@ -87,6 +118,8 @@ defmodule Graft.StatusTest do
       assert req_llm["exists"] == true
       assert req_llm["has_mix_exs"] == true
       assert req_llm["status"] == "ok"
+      assert req_llm["origin"]["expected"] == nil
+      assert req_llm["origin"]["matches"] == nil
       assert req_llm["deps"] == %{"hex" => 2, "path" => 1, "git" => 0, "unknown" => 0}
       assert is_map(req_llm["git"])
       assert req_llm["git"]["is_git_repo"] == false

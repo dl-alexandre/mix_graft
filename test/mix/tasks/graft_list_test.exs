@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Graft.ListTest do
       assert output =~ "Graft workspace:"
       assert output =~ "Siblings (2):"
       assert output =~ "alpha"
-      assert output =~ "[exists]"
+      assert output =~ "[present]"
       assert output =~ "beta"
       assert output =~ "[missing]"
     end
@@ -36,9 +36,11 @@ defmodule Mix.Tasks.Graft.ListTest do
 
       alpha = Enum.find(decoded["siblings"], &(&1["name"] == "alpha"))
       assert alpha["exists"] == true
+      assert alpha["status"] == "present"
 
       beta = Enum.find(decoded["siblings"], &(&1["name"] == "beta"))
       assert beta["exists"] == false
+      assert beta["status"] == "missing"
     end
 
     test "default format is text when --json is omitted" do
@@ -141,6 +143,7 @@ defmodule Mix.Tasks.Graft.ListTest do
 
   defp build_workspace(dir) do
     File.mkdir_p!(Path.join(dir, "alpha"))
+    File.write!(Path.join([dir, "alpha", "mix.exs"]), "# fake\n")
     # beta is deliberately NOT created — should show [missing]
 
     File.write!(Path.join(dir, "graft.exs"), """

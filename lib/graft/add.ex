@@ -8,7 +8,7 @@ defmodule Graft.Add do
   the workspace manifest.
   """
 
-  alias Graft.{Error, Manifest, Safety}
+  alias Graft.{Error, GitRemote, Manifest, Safety}
 
   @type result :: :ok | {:error, Error.t()}
 
@@ -66,9 +66,7 @@ defmodule Graft.Add do
     if File.dir?(dest) do
       verify_existing_remote(dest, url)
     else
-      case System.cmd("git", ["clone", "--depth", "1", url, dest],
-             stderr_to_stdout: true
-           ) do
+      case System.cmd("git", ["clone", "--depth", "1", url, dest], stderr_to_stdout: true) do
         {_output, 0} ->
           :ok
 
@@ -84,13 +82,11 @@ defmodule Graft.Add do
   end
 
   defp verify_existing_remote(dest, expected_url) do
-    case System.cmd("git", ["-C", dest, "remote", "get-url", "origin"],
-           stderr_to_stdout: true
-         ) do
+    case System.cmd("git", ["-C", dest, "remote", "get-url", "origin"], stderr_to_stdout: true) do
       {output, 0} ->
         actual = String.trim(output)
 
-        if normalize_url(actual) == normalize_url(expected_url) do
+        if GitRemote.same?(actual, expected_url) do
           :ok
         else
           {:error,
@@ -109,13 +105,6 @@ defmodule Graft.Add do
            %{dest: dest}
          )}
     end
-  end
-
-  defp normalize_url(url) do
-    url
-    |> String.replace_prefix("git@github.com:", "https://github.com/")
-    |> String.replace_suffix(".git", "")
-    |> String.trim()
   end
 
   defp verify_symlink_target(dest, root) do
@@ -157,28 +146,27 @@ defmodule Graft.Add do
 
   ## ─── Manifest ─────────────────────────────────────────────────────
 
-  defp maybe_update_manifest(_owner_repo, repo_name, root, _dest, opts) do
+  defp maybe_update_manifest(owner_repo, repo_name, root, _dest, opts) do
     if opts[:to_manifest] do
       name = String.to_atom(repo_name)
-      new_entry = %{name: name, path: repo_name}
+      origin = "https://github.com/#{owner_repo}.git"
+      new_entry = %{name: name, path: repo_name, origin: origin}
 
       case Manifest.load(root) do
         {:ok, manifest} ->
           if Enum.any?(manifest.siblings, &(&1.name == name)) do
             {:ok, false}
           else
-            new_manifest = %{
-              root: manifest.root_declared,
-              siblings: manifest.siblings |> Enum.map(&Map.from_struct/1) |> Enum.map(&Map.take(&1, [:name, :path])) |> Kernel.++([new_entry])
-            }
-
-            write_manifest(manifest.source_path, new_manifest)
+            write_manifest(
+              manifest.source_path,
+              manifest.root_declared,
+              manifest.siblings ++ [new_entry]
+            )
           end
 
         {:error, %{kind: :manifest_not_found}} ->
           path = Path.join(root, Manifest.filename())
-          new_manifest = %{root: ".", siblings: [new_entry]}
-          write_manifest(path, new_manifest)
+          write_manifest(path, ".", [new_entry])
 
         {:error, err} ->
           {:error, err}
@@ -188,12 +176,10 @@ defmodule Graft.Add do
     end
   end
 
-  defp write_manifest(path, manifest) do
-    content = inspect(manifest, pretty: true, limit: :infinity)
-
-    case File.write(path, content <> "\n") do
+  defp write_manifest(path, root_declared, siblings) do
+    case Manifest.write(path, root_declared, siblings) do
       :ok -> {:ok, true}
-      {:error, reason} -> {:error, Error.new(:manifest_write_failed, "Failed to write manifest: #{inspect(reason)}")}
+      {:error, %Error{} = err} -> {:error, err}
     end
   end
 end

@@ -54,6 +54,20 @@ defmodule Graft.ManifestTest do
       write_manifest(tmp_dir, ~s|%{root: ".", siblings: []}|)
       assert {:ok, %Manifest{siblings: []}} = Manifest.load(tmp_dir)
     end
+
+    test "accepts optional sibling origin", %{tmp_dir: tmp_dir} do
+      write_manifest(tmp_dir, """
+      %{
+        root: ".",
+        siblings: [
+          %{name: :a, path: "a", origin: "https://github.com/owner/a.git"}
+        ]
+      }
+      """)
+
+      assert {:ok, %Manifest{siblings: [%Sibling{origin: "https://github.com/owner/a.git"}]}} =
+               Manifest.load(tmp_dir)
+    end
   end
 
   describe "load/1 — failures" do
@@ -119,6 +133,13 @@ defmodule Graft.ManifestTest do
       assert {:error, %Error{kind: :manifest_invalid_field}} = Manifest.load(tmp_dir)
     end
 
+    test "sibling :origin is not a binary", %{tmp_dir: tmp_dir} do
+      write_manifest(tmp_dir, ~s|%{root: ".", siblings: [%{name: :a, path: "a", origin: :nope}]}|)
+
+      assert {:error, %Error{kind: :manifest_invalid_field, details: %{key: :origin}}} =
+               Manifest.load(tmp_dir)
+    end
+
     test "sibling is not a map", %{tmp_dir: tmp_dir} do
       write_manifest(tmp_dir, ~s|%{root: ".", siblings: [:not_a_map]}|)
       assert {:error, %Error{kind: :manifest_invalid_field}} = Manifest.load(tmp_dir)
@@ -135,7 +156,8 @@ defmodule Graft.ManifestTest do
       }
       """)
 
-      assert {:error, %Error{kind: :manifest_duplicate_sibling_name, message: msg, details: details}} =
+      assert {:error,
+              %Error{kind: :manifest_duplicate_sibling_name, message: msg, details: details}} =
                Manifest.load(tmp_dir)
 
       assert details.duplicate == :a
@@ -156,7 +178,8 @@ defmodule Graft.ManifestTest do
       }
       """)
 
-      assert {:error, %Error{kind: :manifest_duplicate_sibling_path, message: msg, details: details}} =
+      assert {:error,
+              %Error{kind: :manifest_duplicate_sibling_path, message: msg, details: details}} =
                Manifest.load(tmp_dir)
 
       assert details.count == 2
