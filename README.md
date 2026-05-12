@@ -4,7 +4,7 @@
 
 Graft treats a directory of cloned sibling Elixir repos as a single workspace. You can add siblings to a manifest, inspect what is present, run a quick workspace health check, see git posture, link dependencies for local development, and remove siblings again. Every command derives from the same workspace snapshot, so `status`, `link.on`, and `link.off` see the same world.
 
-> **Status:** `mix_graft` v0.0.1 publish candidate. The Hex package and OTP app are `mix_graft`; the public Mix task namespace remains `mix graft.*`. M1 (status + transactional `link.on`/`link.off` + validation + safe remove) is feature-frozen, with public JSON contracts pinned by golden tests.
+> **Status:** `mix_graft` v0.0.1 is published on Hex. The Hex package and OTP app are `mix_graft`; the public Mix task namespace remains `mix graft.*`. M1 (status + transactional `link.on`/`link.off` + validation + safe remove) is feature-frozen, with public JSON contracts pinned by golden tests.
 
 ## Why
 
